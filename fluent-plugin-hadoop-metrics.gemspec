@@ -4,7 +4,7 @@ $:.push File.expand_path("../lib", __FILE__)
 Gem::Specification.new do |s|
   s.name        = "fluent-plugin-hadoop-metrics"
   s.version     = "0.0.1"
-  s.authors     = [Hironori Ogibayashi]
+  s.authors     = ["Hironori Ogibayashi"]
   s.email       = ["ogibayashi@mayoya.com"]
   s.homepage    = ""
   s.summary     = %q{Fluentd input plugin to collect hadoop metrics}
