@@ -31,15 +31,15 @@ module Fluent
       end
       if @datanode
         host, port = @datanode.split(':')
-        @nn = HadoopMetrics::DataNode.new(host,port)
+        @dn = HadoopMetrics::DataNode.new(host,port)
       end
       if @jobtracker
         host, port = @jobtracker.split(':')
-        @nn = HadoopMetrics::JobTracker.new(host,port)
+        @jt = HadoopMetrics::JobTracker.new(host,port)
       end
       if @tasktracker
         host, port = @tasktracker.split(':')
-        @nn = HadoopMetrics::TaskTracker.new(host,port)
+        @tt = HadoopMetrics::TaskTracker.new(host,port)
       end
       @loop = Coolio::Loop.new
       @loop.attach(TimerWatcher.new(@interval, true, &method(:check_metrics)))
@@ -59,6 +59,18 @@ module Fluent
     end
 
     def check_metrics
+      get_nn
+    end
+
+    def get_nn
+      nninfo = @nn.info
+      nninfo['num_livenodes'] = nninfo['live_nodes'].length
+      nninfo['num_deadnodes'] = nninfo['dead_nodes'].length
+      emit_json([@tag_prefix,"namenode.info"].join("."),Time.now.to_i,nninfo)
+    end
+    
+    def emit_json(tag,time,record)
+      Fluent::Engine.emit(tag,time,record.delete_if{ |k,v| v.class==Hash || v.class==Array})
     end
     
     class TimerWatcher < Coolio::TimerWatcher

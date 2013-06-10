@@ -14,7 +14,7 @@ class HadoopMetricsInputTest < Test::Unit::TestCase
      datanode localhost:50075
      jobtracker localhost:50030
      tasktracker localhost:50060
-     interval 60s
+     interval 1s
   ]
   
   
@@ -29,6 +29,19 @@ class HadoopMetricsInputTest < Test::Unit::TestCase
     assert_equal "localhost:50075", d.instance.datanode
     assert_equal "localhost:50030", d.instance.jobtracker
     assert_equal "localhost:50060", d.instance.tasktracker
+  end
+
+  def test_nn_metrics
+    d = create_driver
+    d.run do 
+      sleep 2
+    end
+    emits = d.emits
+    assert_equal(true, emits.length > 0)
+    assert_equal("hadoop.metrics.namenode.info", emits[0][0])
+    assert_equal("Hadoop:service=NameNode,name=NameNodeInfo", emits[0][2]["name"])
+    assert_equal(true, emits[0][2].has_key?("num_livenodes"))
+    assert_equal(true, emits[0][2].has_key?("num_deadnodes"))
   end
   
   # def test_name
