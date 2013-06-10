@@ -1,5 +1,7 @@
 require 'helper'
 
+# For these tests run successfully, all Hadoop daemons have to be running at localhost.
+
 class HadoopMetricsInputTest < Test::Unit::TestCase
   def setup
     Fluent::Test.setup
@@ -31,17 +33,35 @@ class HadoopMetricsInputTest < Test::Unit::TestCase
     assert_equal "localhost:50060", d.instance.tasktracker
   end
 
-  def test_nn_metrics
+  def test_metrics
     d = create_driver
     d.run do 
       sleep 2
     end
     emits = d.emits
     assert_equal(true, emits.length > 0)
+    # NameNode
     assert_equal("hadoop.metrics.namenode.info", emits[0][0])
     assert_equal("Hadoop:service=NameNode,name=NameNodeInfo", emits[0][2]["name"])
     assert_equal(true, emits[0][2].has_key?("num_livenodes"))
     assert_equal(true, emits[0][2].has_key?("num_deadnodes"))
+    assert_equal("{}", emits[0][2]["dead_nodes"])
+    assert_equal("hadoop.metrics.namenode.dfs", emits[1][0])
+    assert_equal("Hadoop:service=NameNode,name=FSNamesystem", emits[1][2]["name"])
+
+    # DataNode
+    assert_equal("hadoop.metrics.datanode.info", emits[2][0])
+    assert_equal("Hadoop:service=DataNode,name=DataNodeInfo", emits[2][2]["name"])
+
+    # JobTracker
+    assert_equal("hadoop.metrics.jobtracker.info", emits[3][0])
+    assert_equal("hadoop:service=JobTracker,name=JobTrackerInfo", emits[3][2]["name"])
+    assert_equal(true, emits[3][2].has_key?("num_alive_nodes"))
+    assert_equal(true, emits[3][2].has_key?("num_blacklisted_nodes"))
+
+    # TaskTracker
+    assert_equal("hadoop.metrics.tasktracker.info", emits[4][0])
+    assert_equal("hadoop:service=TaskTracker,name=TaskTrackerInfo", emits[4][2]["name"])
   end
   
   # def test_name
