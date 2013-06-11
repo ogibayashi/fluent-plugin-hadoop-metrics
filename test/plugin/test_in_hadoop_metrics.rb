@@ -9,18 +9,21 @@ class HadoopMetricsInputTest < Test::Unit::TestCase
   
   def teardown
   end
-  
-  CONFIG = %[
+
+  def default_config
+    %[
      tag_prefix hadoop.metrics
      namenode localhost:50070
      datanode localhost:50075
      jobtracker localhost:50030
      tasktracker localhost:50060
      interval 1s
-  ]
+    ]
+  end
   
   
-  def create_driver(conf=CONFIG,tag='test')
+  
+  def create_driver(conf=default_config,tag='test')
     Fluent::Test::InputTestDriver.new(Fluent::HadoopMetricsInput).configure(conf)
   end
   
@@ -64,6 +67,23 @@ class HadoopMetricsInputTest < Test::Unit::TestCase
     assert_equal("hadoop:service=TaskTracker,name=TaskTrackerInfo", emits[4][2]["name"])
   end
   
+
+  def test_server_down
+    # Only TT is up.
+    d = create_driver (%[
+     tag_prefix hadoop.metrics
+     namenode localhost:50071
+     datanode localhost:50076
+     jobtracker localhost:50031
+     tasktracker localhost:50060
+     interval 1s
+    ])
+    d.run do 
+      sleep 2
+    end
+    assert_equal("hadoop.metrics.tasktracker.info", d.emits[0][0])
+  end
+
   # def test_name
   #   d = create_driver
     

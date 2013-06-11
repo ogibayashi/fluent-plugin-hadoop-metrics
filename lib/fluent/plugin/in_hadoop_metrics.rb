@@ -19,7 +19,6 @@ module Fluent
     config_param :tasktracker,:string,:default => nil
     config_param :interval, :time, :default =>  60
 
-
     def configure(conf)
       super
     end
@@ -64,40 +63,56 @@ module Fluent
     end
 
     def check_metrics
-      get_nn
-      get_dn
-      get_jt
-      get_tt
+      get_nn if @nn
+      get_dn if @dn
+      get_jt if @jt
+      get_tt if @tt
     end
 
     # NameNode
     def get_nn
-      nninfo = @nn.info
-      nninfo['num_livenodes'] = nninfo['live_nodes'].length
-      nninfo['num_deadnodes'] = nninfo['dead_nodes'].length
-      emit_json(@tag_nninfo,Time.now.to_i,nninfo)
-      nndfs = @nn.dfs
-      emit_json(@tag_nndfs,Time.now.to_i,nndfs)
+      begin
+        nninfo = @nn.info
+        nninfo['num_livenodes'] = nninfo['live_nodes'].length
+        nninfo['num_deadnodes'] = nninfo['dead_nodes'].length
+        emit_json(@tag_nninfo,Time.now.to_i,nninfo)
+        nndfs = @nn.dfs
+        emit_json(@tag_nndfs,Time.now.to_i,nndfs)
+      rescue Errno::ECONNREFUSED
+        $log.warn "NameNode at #{@namenode} is down."
+      end
     end
 
     # DataNode
     def get_dn
-      dninfo = @dn.info
-      emit_json(@tag_dninfo,Time.now.to_i,dninfo)
+      begin
+        dninfo = @dn.info
+        emit_json(@tag_dninfo,Time.now.to_i,dninfo)
+      rescue Errno::ECONNREFUSED
+        $log.warn "DataNode at #{@datanode} is down."
+      end
     end
     
     # JobTracker
     def get_jt
-      jtinfo = @jt.info
-      jtinfo['num_alive_nodes'] = jtinfo['alive_nodes_info_json'].length
-      jtinfo['num_blacklisted_nodes'] = jtinfo['blacklisted_nodes_info_json'].length
-      emit_json(@tag_jtinfo,Time.now.to_i,jtinfo)
+      begin
+        jtinfo = @jt.info
+        jtinfo['num_alive_nodes'] = jtinfo['alive_nodes_info_json'].length
+        jtinfo['num_blacklisted_nodes'] = jtinfo['blacklisted_nodes_info_json'].length
+        emit_json(@tag_jtinfo,Time.now.to_i,jtinfo)
+      rescue Errno::ECONNREFUSED
+        $log.warn "JobTracker at #{@jobtracker} is down."
+      end
     end
 
     # TaskTracker
     def get_tt
-      ttinfo = @tt.info
-      emit_json(@tag_ttinfo,Time.now.to_i,ttinfo)
+      begin
+        ttinfo = @tt.info
+        emit_json(@tag_ttinfo,Time.now.to_i,ttinfo)
+      rescue Errno::ECONNREFUSED
+        $log.warn "TaskTracker at #{@tasktracker} is down."
+      end
     end
 
     # Convert Hash or Array as JSON value to String.
