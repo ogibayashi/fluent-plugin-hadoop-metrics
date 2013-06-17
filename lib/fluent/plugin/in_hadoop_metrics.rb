@@ -2,6 +2,7 @@ module Fluent
 
   class HadoopMetricsInput < Input
     Plugin.register_input('hadoop_metrics', self)
+    VALID_FLATTEN_MODE = ["none", "unnest","string"]
 
     def initialize
       require 'hadoop_metrics'
@@ -18,9 +19,13 @@ module Fluent
     config_param :jobtracker,:string, :default => nil
     config_param :tasktracker,:string,:default => nil
     config_param :interval, :time, :default =>  60
+    config_param :flatten_mode, :string, :default => "none"
 
     def configure(conf)
       super
+      if ! VALID_FLATTEN_MODE.member?(@flatten_mode)
+        raise Fluent::ConfigError "Invalid flatten mode: #{@flatten_mode}"
+      end
     end
 
     def start
@@ -118,13 +123,40 @@ module Fluent
     # Convert Hash or Array as JSON value to String.
     def emit_json(tag,time,record)
       if record
-        Fluent::Engine.emit(tag,time,
-                            record.each{ |k,v| 
-                              record[k] = (v.class==Hash || v.class==Array) ? v.to_s : v
-                            })
+        case @flatten_mode
+        when "none"
+          Fluent::Engine.emit(tag,time, record)
+        when "string"
+          Fluent::Engine.emit(tag,time,
+                              record.each{ |k,v| 
+                                record[k] = (v.class==Hash || v.class==Array) ? v.to_s : v
+                              })
+        when "unnest" 
+          Fluent::Engine.emit(tag,time,unnest_hash(record))
+        end
       end
     end
-    
+
+    # Unnest hash
+    #  {"a" => { "b" => "c"}}
+    #    -> {"a.b" => "c"}
+    def unnest_hash(hash,prefix=nil)
+      unless hash.is_a?(Hash)
+        return hash
+      end
+      ret = hash.inject({ }){|h, (k,v) |
+        key = prefix.to_s + k
+        if v.is_a?(Hash)
+          h.merge(unnest_hash(v, key + "."))
+        elsif v.is_a?(Array)
+          h.merge({ key => v.to_s})
+        else
+          h.merge({key => v})
+        end
+      }
+      return ret
+    end
+
     class TimerWatcher < Coolio::TimerWatcher
       def initialize(interval, repeat, &callback)
         @callback = callback

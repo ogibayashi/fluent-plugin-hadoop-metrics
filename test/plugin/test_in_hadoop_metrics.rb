@@ -21,8 +21,6 @@ class HadoopMetricsInputTest < Test::Unit::TestCase
     ]
   end
   
-  
-  
   def create_driver(conf=default_config,tag='test')
     Fluent::Test::InputTestDriver.new(Fluent::HadoopMetricsInput).configure(conf)
   end
@@ -48,7 +46,7 @@ class HadoopMetricsInputTest < Test::Unit::TestCase
     assert_equal("Hadoop:service=NameNode,name=NameNodeInfo", emits[0][2]["name"])
     assert_equal(true, emits[0][2].has_key?("num_livenodes"))
     assert_equal(true, emits[0][2].has_key?("num_deadnodes"))
-    assert_equal("{}", emits[0][2]["dead_nodes"])
+    assert_equal({}, emits[0][2]["dead_nodes"])
     assert_equal("hadoop.metrics.namenode.dfs", emits[1][0])
     assert_equal("Hadoop:service=NameNode,name=FSNamesystem", emits[1][2]["name"])
 
@@ -82,6 +80,33 @@ class HadoopMetricsInputTest < Test::Unit::TestCase
       sleep 2
     end
     assert_equal("hadoop.metrics.tasktracker.info", d.emits[0][0])
+  end
+
+  def test_flatten_string
+    conf = default_config
+    conf = conf + %[
+      flatten_mode string
+    ]
+    d = create_driver(conf)
+    d.run do 
+      sleep 2
+    end
+    emits = d.emits
+    assert_equal("{}", emits[0][2]["dead_nodes"])
+  end
+
+
+  def test_flatten_unnest
+    conf = default_config
+    conf = conf + %[
+      flatten_mode unnest
+    ]
+    d = create_driver(conf)
+    d.run do 
+      sleep 2
+    end
+    emits = d.emits
+    assert_equal(true, emits[3][2].has_key?("summary_json.slots.map_slots"))
   end
 
   # def test_name
