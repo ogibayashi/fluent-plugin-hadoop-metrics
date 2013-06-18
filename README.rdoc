@@ -1,0 +1,54 @@
+= fluent-plugin-hadoop-metrics
+
+Fluentd input plugin to collect hadoop metrics using hadoop-metrics gem.
+
+== Configuration 
+
+    type hadoop_metrics
+    tag_prefix hadoop.metrics
+    namenode localhost:50070
+    datanode localhost:50075
+    jobtracker localhost:50030
+    tasktracker localhost:50060
+    interval 60s
+
+
+then you will get following records.
+
+    2013-06-18T09:01:39+09:00       hadoop.metrics.namenode.info    {"name":"Hadoop:service=NameNode,name=NameNodeInfo","modeler_type":"org.apache.hadoop.hdfs.server.namenode.FSNamesystem","threads":31,"used":22192128,"version":"2.0.0-cdh4.2.0, r8bce4bd28a464e0a92950c50ba01a9deb1d85686","total":1424111370240,"cluster_id":"CID-90c456a6-e7a9-43f1-b513-21164b759d95","block_pool_id":"BP-1790388526-10.29.254.2-1366461789114","free":1340962373632,"safemode":"","upgrade_finalized":true,"non_dfs_used_space":83126804480,"percent_used":0.001558314,"block_pool_used_space":22192128,"percent_block_pool_used":0.001558314,"percent_remaining":94.16134,"total_blocks":20,"total_files":86,"number_of_missing_blocks":0,"live_nodes":{"node1.hadoop.local":{"num_blocks":10,"used_space":8114176,"last_contact":1,"capacity":474703790080,"non_dfs_used_space":28832256000,"admin_state":"In Service"},"node3.hadoop.local":{"num_blocks":5,"used_space":6447104,"last_contact":1,"capacity":474703790080,"non_dfs_used_space":27232538624,"admin_state":"In Service"},"node2.hadoop.local":{"num_blocks":5,"used_space":7630848,"last_contact":1,"capacity":474703790080,"non_dfs_used_space":27062009856,"admin_state":"In Service"}},"dead_nodes":{},"decom_nodes":{},"name_dir_statuses":{"failed":{},"active":{"/var/lib/hadoop-hdfs/cache/hdfs/dfs/name":"IMAGE_AND_EDITS"}},"num_livenodes":3,"num_deadnodes":0}
+    2013-06-18T09:01:39+09:00       hadoop.metrics.namenode.dfs     {"name":"Hadoop:service=NameNode,name=FSNamesystem","modeler_type":"FSNamesystem","tag._context":"dfs","tag._h_a_state":"active","tag._hostname":"node1.hadoop.local","missing_blocks":0,"expired_heartbeats":0,"transactions_since_last_checkpoint":1,"transactions_since_last_log_roll":1,"last_written_transaction_id":25261,"last_checkpoint_time":1371512193104,"capacity_total_g_b":1326.0,"capacity_used_g_b":0.0,"capacity_remaining_g_b":1249.0,"total_load":3,"blocks_total":20,"files_total":86,"pending_replication_blocks":0,"under_replicated_blocks":0,"corrupt_blocks":0,"scheduled_replication_blocks":0,"pending_deletion_blocks":0,"excess_blocks":0,"postponed_misreplicated_blocks":0,"pending_data_node_message_count":0,"millis_since_last_loaded_edits":0,"block_capacity":262144,"total_files":86}
+    2013-06-18T09:01:39+09:00       hadoop.metrics.datanode.info    {"name":"Hadoop:service=DataNode,name=DataNodeInfo","modeler_type":"org.apache.hadoop.hdfs.server.datanode.DataNode","version":"2.0.0-cdh4.2.0","xceiver_count":1,"rpc_port":"50020","http_port":null,"namenode_addresses":{"node1.hadoop.local":"BP-1790388526-10.29.254.2-1366461789114"},"volume_info":{"/var/lib/hadoop-hdfs/cache/hdfs/dfs/data/current":{"free_space":445863407616,"used_space":8114176,"reserved_space":0}},"cluster_id":"CID-90c456a6-e7a9-43f1-b513-21164b759d95"}
+    2013-06-18T09:01:39+09:00       hadoop.metrics.jobtracker.info  {"name":"hadoop:service=JobTracker,name=JobTrackerInfo","modeler_type":"org.apache.hadoop.mapred.JobTracker","version":"2.0.0-mr1-cdh4.2.0, rUnknown","thread_count":39,"hostname":"node1","config_version":"default","summary_json":{"nodes":3,"alive":3,"blacklisted":0,"slots":{"map_slots":24,"map_slots_used":0,"reduce_slots":12,"reduce_slots_used":0},"jobs":5},"alive_nodes_info_json":[{"hostname":"psdata2.hadoop.local","last_seen":1371513699127,"health":"OK","slots":{"map_slots":8,"map_slots_used":0,"reduce_slots":4,"reduce_slots_used":0},"failures":0,"dir_failures":0},{"hostname":"node2.hadoop.local","last_seen":1371513699070,"health":"OK","slots":{"map_slots":8,"map_slots_used":0,"reduce_slots":4,"reduce_slots_used":0},"failures":0,"dir_failures":0},{"hostname":"node3.hadoop.local","last_seen":1371513699197,"health":"OK","slots":{"map_slots":8,"map_slots_used":0,"reduce_slots":4,"reduce_slots_used":0},"failures":0,"dir_failures":0}],"blacklisted_nodes_info_json":[],"queue_info_json":{"default":{"info":"N/A"}},"num_alive_nodes":3,"num_blacklisted_nodes":0}
+2013-06-18T09:01:39+09:00       hadoop.metrics.tasktracker.info {"name":"hadoop:service=TaskTracker,name=TaskTrackerInfo","modeler_type":"org.apache.hadoop.mapred.TaskTracker","hostname":"node1.hadoop.local","version":"2.0.0-mr1-cdh4.2.0, rUnknown","config_version":"default","job_tracker_url":"psdata2.hadoop.local:8021","rpc_port":50808,"http_port":50060,"healthy":true,"tasks_info_json":{"running":0,"failed":0,"commit_pending":0}}
+
+=== flatten_mode 
+
+Since these metrics uses nested JSON document, this plugin support flattening them by "flatten_mode" parameter.
+
+- flatten_mode = none
+  - Nested documents are emited As-Is.
+
+- flatten_mode = string
+  - Nested documents are converted to string as below.
+
+
+  2013-06-13T00:00:31+09:00       hadoop.metrics.jobtracker.info  {"name":"hadoop:service=JobTracker,name=JobTrackerInfo","modeler_type":"org.apache.hadoop.mapred.JobTracker","version":"2.0.0-mr1-cdh4.2.0, rUnknown","thread_count":31,"hostname":"psdata2","config_version":"default","summary_json":"{\"nodes\"=>3, \"alive\"=>3, \"blacklisted\"=>0, \"slots\"=>{\"map_slots\"=>24, \"map_slots_used\"=>0, \"reduce_slots\"=>12, \"reduce_slots_used\"=>0}, \"jobs\"=>0}","alive_nodes_info_json":"[{\"hostname\"=>\"psdata2.hadoop.local\", \"last_seen\"=>1371049231569, \"health\"=>\"OK\", \"slots\"=>{\"map_slots\"=>8, \"map_slots_used\"=>0, \"reduce_slots\"=>4, \"reduce_slots_used\"=>0}, \"failures\"=>0, \"dir_failures\"=>0}, {\"hostname\"=>\"psdata3.hadoop.local\", \"last_seen\"=>1371049231658, \"health\"=>\"OK\", \"slots\"=>{\"map_slots\"=>8, \"map_slots_used\"=>0, \"reduce_slots\"=>4, \"reduce_slots_used\"=>0}, \"failures\"=>0, \"dir_failures\"=>0}, {\"hostname\"=>\"psdata4.hadoop.local\", \"last_seen\"=>1371049231560, \"health\"=>\"OK\", \"slots\"=>{\"map_slots\"=>8, \"map_slots_used\"=>0, \"reduce_slots\"=>4, \"reduce_slots_used\"=>0}, \"failures\"=>0, \"dir_failures\"=>0}]","blacklisted_nodes_info_json":"[]","queue_info_json":"{\"default\"=>{\"info\"=>\"N/A\"}}","num_alive_nodes":3,"num_blacklisted_nodes":0}
+
+
+- flatten_mode = unnest
+  - Nested documents are unnested like  `{"a" => { "b" => "c"}} -> {"a.b" => "c"}`
+  - Currently arrays as JSON value are converted to string
+
+
+  2013-06-18T08:53:42+09:00       hadoop.metrics.jobtracker.info  {"name":"hadoop:service=JobTracker,name=JobTrackerInfo","modeler_type":"org.apache.hadoop.mapred.JobTracker","version":"2.0.0-mr1-cdh4.2.0, rUnknown","thread_count":39,"hostname":"psdata2","config_version":"default","summary_json.nodes":3,"summary_json.alive":3,"summary_json.blacklisted":0,"summary_json.slots.map_slots":24,"summary_json.slots.map_slots_used":0,"summary_json.slots.reduce_slots":12,"summary_json.slots.reduce_slots_used":0,"summary_json.jobs":5,"alive_nodes_info_json":"[{\"hostname\"=>\"psdata2.hadoop.local\", \"last_seen\"=>1371513221858, \"health\"=>\"OK\", \"slots\"=>{\"map_slots\"=>8, \"map_slots_used\"=>0, \"reduce_slots\"=>4, \"reduce_slots_used\"=>0}, \"failures\"=>0, \"dir_failures\"=>0}, {\"hostname\"=>\"psdata3.hadoop.local\", \"last_seen\"=>1371513221796, \"health\"=>\"OK\", \"slots\"=>{\"map_slots\"=>8, \"map_slots_used\"=>0, \"reduce_slots\"=>4, \"reduce_slots_used\"=>0}, \"failures\"=>0, \"dir_failures\"=>0}, {\"hostname\"=>\"psdata4.hadoop.local\", \"last_seen\"=>1371513221884, \"health\"=>\"OK\", \"slots\"=>{\"map_slots\"=>8, \"map_slots_used\"=>0, \"reduce_slots\"=>4, \"reduce_slots_used\"=>0}, \"failures\"=>0, \"dir_failures\"=>0}]","blacklisted_nodes_info_json":"[]","queue_info_json.default.info":"N/A","num_alive_nodes":3,"num_blacklisted_nodes":0}
+
+
+== TODO 
+
+- Collect GC metrics.
+- Automatically detect running hadoop daemons. (How?)
+
+== Copyright 
+
+Copyright:: Copyright (c) 2013- OGIBAYASHI Hironori
+License:: Apache License, Version 2.0
